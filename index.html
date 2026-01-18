@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anonymous Grading SPA (Simple)</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <h1>Anonymous Grading</h1>
+    <div id="sessionBar" class="session"></div>
+  </header>
+
+  <main class="container">
+    <!-- AUTH -->
+    <section id="authView" class="card">
+      <h2>Login / Register</h2>
+
+      <div class="grid2">
+        <div>
+          <h3>Register</h3>
+          <label>Username
+            <input id="regUsername" placeholder="e.g. ana" />
+          </label>
+          <label>Role
+            <select id="regRole">
+              <option value="student">Student</option>
+              <option value="professor">Professor</option>
+            </select>
+          </label>
+          <button id="btnRegister">Register</button>
+          <p class="hint">Students are automatically eligible evaluators (unless PM of a project).</p>
+        </div>
+
+        <div>
+          <h3>Login</h3>
+          <label>Username
+            <input id="loginUsername" placeholder="e.g. ana" />
+          </label>
+          <button id="btnLogin">Login</button>
+          <p class="hint">No passwords in this demo (simple).</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- STUDENT VIEW -->
+    <section id="studentView" class="card hidden">
+      <h2>Student Dashboard</h2>
+
+      <div class="grid2">
+        <div class="subcard">
+          <h3>Create Project (PM)</h3>
+          <label>Project title
+            <input id="projTitle" placeholder="My Web App" />
+          </label>
+          <label>Team members (comma separated usernames)
+            <input id="projTeam" placeholder="ana, bogdan" />
+          </label>
+          <button id="btnCreateProject">Create Project</button>
+          <p class="hint">If you create a project and include yourself, you are PM (part of that team).</p>
+        </div>
+
+        <div class="subcard">
+          <h3>Create Deliverable</h3>
+          <label>Select project
+            <select id="deliverableProject"></select>
+          </label>
+          <label>Deliverable title
+            <input id="delTitle" placeholder="Milestone 1" />
+          </label>
+          <label>Due date/time (local)
+            <input id="delDue" type="datetime-local" />
+          </label>
+          <label>Jury size
+            <input id="delJurySize" type="number" min="3" max="10" value="5" />
+          </label>
+          <label>Edit window (minutes after due)
+            <input id="delEditWindow" type="number" min="1" max="1440" value="30" />
+          </label>
+          <button id="btnCreateDeliverable">Add Deliverable</button>
+          <p class="hint">Grades can be edited only until (due + edit window).</p>
+        </div>
+      </div>
+
+      <div class="subcard">
+        <h3>Projects & Deliverables</h3>
+        <div id="studentProjects"></div>
+      </div>
+
+      <div class="subcard">
+        <h3>Jury Tasks (Deliverables I can grade)</h3>
+        <div id="juryTasks"></div>
+      </div>
+    </section>
+
+    <!-- PROFESSOR VIEW -->
+    <section id="professorView" class="card hidden">
+      <h2>Professor Dashboard</h2>
+      <p class="hint">You can see results per project, but NOT the jury identities.</p>
+      <div id="profProjects"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
