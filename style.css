@@ -8,6 +8,8 @@
   font-family: system-ui, Arial, sans-serif;
 }
 
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
   margin: 0;
   background: var(--color-bg);
