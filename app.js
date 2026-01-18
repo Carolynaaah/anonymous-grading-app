@@ -145,17 +145,26 @@ function shuffle(arr) {
 }
 
 function assignJuryIfDue(db, deliverable) {
-  // Only assign if due and not assigned yet
-  if (deliverable.juryUserIds && deliverable.juryUserIds.length > 0) return;
-
   if (nowMs() < deliverable.dueAt) return; // not due yet
 
-  const eligible = eligibleEvaluatorsForDeliverable(db, deliverable);
-  const wanted = Math.max(3, Number(deliverable.jurySize) || 3);
-  const chosen = shuffle(eligible).slice(0, Math.min(wanted, eligible.length)).map(u => u.id);
+  if (!Array.isArray(deliverable.juryUserIds)) deliverable.juryUserIds = [];
 
-  deliverable.juryUserIds = chosen;
+  const eligible = eligibleEvaluatorsForDeliverable(db, deliverable);
+
+  const wanted = Math.max(3, Number(deliverable.jurySize) || 3);
+
+  // Only choose from eligible students that are NOT already in the jury
+  const already = new Set(deliverable.juryUserIds);
+  const candidates = eligible.filter(u => !already.has(u.id));
+
+  // Add more members until jury is full (or no more candidates)
+  const needed = wanted - deliverable.juryUserIds.length;
+  if (needed <= 0) return;
+
+  const added = shuffle(candidates).slice(0, Math.min(needed, candidates.length)).map(u => u.id);
+  deliverable.juryUserIds.push(...added);
 }
+
 
 function canEditGrade(deliverable) {
   // Grade can be modified only until dueAt + editWindowMin
@@ -185,10 +194,10 @@ function renderSessionBar(db, user) {
     return;
   }
   sessionBar.innerHTML = `
-    <span class="badge">Logged in: ${user.username} (${user.role})</span>
-    <button class="secondary" id="btnLogout">Logout</button>
-    <button class="danger" id="btnReset">Reset Demo Data</button>
-  `;
+  <span class="badge">Logged in: ${user.username} (${user.role})</span>
+  <button class="secondary" id="btnLogout">Logout</button>
+  <button class="danger" id="btnReset">Reset Demo Data</button>
+`;
 
   document.getElementById("btnLogout").onclick = logout;
   document.getElementById("btnReset").onclick = () => {
@@ -250,6 +259,9 @@ function renderStudentProjects(db, user) {
             <span class="badge">Edit window: ${d.editWindowMin} min</span>
           </div>
 
+          <p class="small">Jury assignment: automatic at due time</p>
+
+
           <div class="row" style="margin-top:8px;">
             <input id="link_${d.id}" placeholder="Video or deployed link (https://...)" value="${d.link || ""}" />
             <button class="secondary" data-save-link="${d.id}">Save link</button>
@@ -257,12 +269,6 @@ function renderStudentProjects(db, user) {
 
           <div class="hr"></div>
 
-          <div class="row">
-            <button ${isDue ? "" : "disabled"} class="secondary" data-force-assign="${d.id}">
-              Force jury selection (demo)
-            </button>
-            <span class="small">${isDue ? "Due reached: jury can be assigned." : "Not due yet: jury won't auto-assign."}</span>
-          </div>
         </div>
       `;
     }).join("");
@@ -305,22 +311,6 @@ function renderStudentProjects(db, user) {
     };
   });
 
-  // Force assign jury (demo button)
-  studentProjects.querySelectorAll("[data-force-assign]").forEach(btn => {
-    btn.onclick = () => {
-      const db2 = loadDB();
-      const dId = btn.getAttribute("data-force-assign");
-      const d = byId(db2.deliverables, dId);
-      if (!d) return;
-
-      // for demo: set dueAt in past if not due yet
-      if (nowMs() < d.dueAt) d.dueAt = nowMs() - 1000;
-
-      assignJuryIfDue(db2, d);
-      saveDB(db2);
-      render();
-    };
-  });
 }
 
 function renderJuryTasks(db, user) {
@@ -585,3 +575,26 @@ btnCreateDeliverable.onclick = () => {
 
 // Start
 render();
+
+// Check every 5 seconds if any deliverable became due and needs jury assignment
+setInterval(() => {
+  const db = loadDB();
+  let changed = false;
+
+  for (const d of db.deliverables) {
+  const wanted = Math.max(3, Number(d.jurySize) || 3);
+  const current = (d.juryUserIds || []).length;
+
+  if (nowMs() >= d.dueAt && current < wanted) {
+    assignJuryIfDue(db, d);
+    changed = true;
+  }
+}
+
+
+  if (changed) {
+    saveDB(db);
+    render();
+  }
+}, 5000);
+
